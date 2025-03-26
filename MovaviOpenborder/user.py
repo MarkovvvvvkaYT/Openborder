@@ -16,11 +16,14 @@ class User:
     @staticmethod
     def add_user(id):
         con = sqlite3.connect(db_name)
-        cursor_object = con.execute(f"""
-                INSERT OR REPLACE INTO user (id) 
-                VALUES ('{id}')
-                """)
-        con.commit()
+        cursor = con.cursor()
+        
+        # Сначала проверяем, существует ли уже пользователь
+        cursor.execute("SELECT id FROM user WHERE id = ?", (id,))
+        if cursor.fetchone() is None:
+            # Добавляем только если пользователя нет
+            cursor.execute("INSERT INTO user (id) VALUES (?)", (id,))
+            con.commit()
         con.close()
 
     @staticmethod

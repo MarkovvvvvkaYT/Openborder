@@ -1,78 +1,173 @@
-from telebot import types, telebot
+from telebot import types, TeleBot
 import sqlite3
 from config import TOKEN, ADMINS
 from user import User, create_table
 
-bot = telebot.TeleBot(TOKEN)
+bot = TeleBot(TOKEN)
+
+def teacher_menu():
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    buttons = [
+        types.InlineKeyboardButton('Партнеры', callback_data="partners_teacher"),
+        types.InlineKeyboardButton('Мотивация', callback_data="motivation"),
+        types.InlineKeyboardButton('Карта курсов', callback_data="course_card"),
+        types.InlineKeyboardButton('О компании', url='https://movavi.ru/about'),
+        types.InlineKeyboardButton('Метод работа', url='https://movavi.ru/methods'),
+        types.InlineKeyboardButton('Структура (Кто? Где? Когда?)', url='https://movavi.ru/structure')
+    ]
+    
+    keyboard.add(*buttons)
+    return keyboard
+
+def tutor_menu():
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    buttons = [
+        types.InlineKeyboardButton('Инструкции и регламенты', callback_data="instructions_and_regulations"),
+        types.InlineKeyboardButton('Карта курсов', callback_data="course_card"),
+        types.InlineKeyboardButton('Партнеры', callback_data="partners_tutor"),
+        types.InlineKeyboardButton('Мотивация', callback_data="motivation"),
+        types.InlineKeyboardButton('АХО', callback_data="axo"),
+        types.InlineKeyboardButton('О компании', url='https://movavi.ru/about'),
+        types.InlineKeyboardButton('Структура (Кто? Где? Когда?)', url='https://movavi.ru/structure')
+    ]
+    
+    keyboard.add(*buttons)
+    return keyboard
 
 @bot.message_handler(commands=['start'])
 def start(message):
     create_table()
-    keyboard = telebot.types.InlineKeyboardMarkup()
     User.add_user(message.chat.id)
-    if User.get_role_by_id(message.chat.id) != 'teacher' and User.get_role_by_id(message.chat.id) != 'tutor' and User.get_role_by_id(message.chat.id) == None:
-        tutor = telebot.types.InlineKeyboardButton('Я куратор', callback_data="tutor")
-        teacher = telebot.types.InlineKeyboardButton('Я преподаватель', callback_data="teacher")
+    user_role = User.get_role_by_id(message.chat.id)
+    
+    if not user_role:
+        keyboard = types.InlineKeyboardMarkup()
+        tutor = types.InlineKeyboardButton('Я куратор', callback_data="tutor")
+        teacher = types.InlineKeyboardButton('Я преподаватель', callback_data="teacher")
         keyboard.add(tutor, teacher)
         bot.send_message(message.chat.id, f'Привет, {message.from_user.first_name}!\nКто вы?', reply_markup=keyboard)
-    else:
-        if User.get_role_by_id(message.chat.id) == 'teacher':
+    elif user_role == 'teacher':
+        bot.send_message(message.chat.id, '⬇️ Выберите действие', reply_markup=teacher_menu())
+    elif user_role == 'tutor':
+        bot.send_message(message.chat.id, '⬇️ Выберите действие', reply_markup=tutor_menu())
 
-            partners = telebot.types.InlineKeyboardButton('Партнеры', callback_data="partners_teacher")
-            motivation = telebot.types.InlineKeyboardButton('Мотивация', callback_data="motivation") 
-            course_card = telebot.types.InlineKeyboardButton('Карта курсов', callback_data="course_card")
-
-            about_us = telebot.types.InlineKeyboardButton('О компании', url='https://youtu.be/dQw4w9WgXcQ?si=SvqZnOWFu5bQp9h9')
-            methods = telebot.types.InlineKeyboardButton('Метод работа', url='https://youtu.be/dQw4w9WgXcQ?si=SvqZnOWFu5bQp9h9')
-            structure = telebot.types.InlineKeyboardButton('Структура (Кто? Где? Когда?)', url='https://youtu.be/dQw4w9WgXcQ?si=SvqZnOWFu5bQp9h9')
-
-            keyboard.add(partners, motivation, course_card, about_us, methods, structure)
-            bot.send_message(message.chat.id, '⬇️ Выберите действие', reply_markup=keyboard)
-        elif User.get_role_by_id(message.chat.id) == 'tutor':
-
-            instructions_and_regulations = telebot.types.InlineKeyboardButton('Инструкции и регламенты', callback_data="instructions_and_regulations")
-            сourse_card = telebot.types.InlineKeyboardButton('Карта курсов', callback_data="сourse_card")
-            partners = telebot.types.InlineKeyboardButton('Партнеры', callback_data="partners_tutor")
-            motivation = telebot.types.InlineKeyboardButton('Мотивация', callback_data="motivation")
-            axo = telebot.types.InlineKeyboardButton('АХО', callback_data="axo")
-
-            structure_question = telebot.types.InlineKeyboardButton('Инструкции и регламенты', url='https://youtu.be/dQw4w9WgXcQ?si=SvqZnOWFu5bQp9h9')
-            about_company = telebot.types.InlineKeyboardButton('О компании', url='https://youtu.be/dQw4w9WgXcQ?si=SvqZnOWFu5bQp9h9')
-
-            keyboard.add(about_company, instructions_and_regulations, сourse_card, motivation)
-            bot.send_message(message.chat.id, '⬇️ Выберите действие', reply_markup=keyboard)
-        
 @bot.callback_query_handler(func=lambda callback: True)
 def handle_callback(callback):
-    if callback.data == 'teacher' or callback.data == 'tutor':
+    if callback.data in ('teacher', 'tutor'):
         User.add_role_to_user(callback.message.chat.id, callback.data)
-        keyboard = telebot.types.InlineKeyboardMarkup()
-        if User.get_role_by_id(callback.message.chat.id) == 'teacher':
-            partners = telebot.types.InlineKeyboardButton('Партнеры', callback_data="partners_teacher")
-            motivation = telebot.types.InlineKeyboardButton('Мотивация', callback_data="motivation") 
-            course_card = telebot.types.InlineKeyboardButton('Карта курсов', callback_data="course_card")
-
-            about_us = telebot.types.InlineKeyboardButton('О компании', url='https://youtu.be/dQw4w9WgXcQ?si=SvqZnOWFu5bQp9h9')
-            methods = telebot.types.InlineKeyboardButton('Метод работа', url='https://youtu.be/dQw4w9WgXcQ?si=SvqZnOWFu5bQp9h9')
-            structure = telebot.types.InlineKeyboardButton('Структура (Кто? Где? Когда?)', url='https://youtu.be/dQw4w9WgXcQ?si=SvqZnOWFu5bQp9h9')
-                    
-            keyboard.add(partners, motivation, course_card, about_us, methods, structure)
-            bot.edit_message_text('⬇️ Выберите действие', callback.message.chat.id, callback.message.id, reply_markup=keyboard)
-        elif User.get_role_by_id(callback.message.chat.id) == 'tutor':
-
-            instructions_and_regulations = telebot.types.InlineKeyboardButton('Инструкции и регламенты', callback_data="instructions_and_regulations")
-            сourse_card = telebot.types.InlineKeyboardButton('Карта курсов', callback_data="сourse_card")
-            partners = telebot.types.InlineKeyboardButton('Партнеры', callback_data="partners_tutor")
-            motivation = telebot.types.InlineKeyboardButton('Мотивация', callback_data="motivation")
-            axo = telebot.types.InlineKeyboardButton('АХО', callback_data="axo")
-
-            structure_question = telebot.types.InlineKeyboardButton('Инструкции и регламенты', url='https://youtu.be/dQw4w9WgXcQ?si=SvqZnOWFu5bQp9h9')
-            about_company = telebot.types.InlineKeyboardButton('О компании', url='https://youtu.be/dQw4w9WgXcQ?si=SvqZnOWFu5bQp9h9')
-
-            keyboard.add(instructions_and_regulations, сourse_card, motivation, axo, structure_question, about_company)
-            bot.edit_message_text('⬇️ Выберите действие', callback.message.chat.id, callback.message.id, reply_markup=keyboard)
-
-
+        bot.answer_callback_query(callback.id, f"Вы выбрали роль {callback.data}")
+        if callback.data == 'teacher':
+            bot.edit_message_text('⬇️ Выберите действие', callback.message.chat.id, callback.message.id, reply_markup=teacher_menu())
+        elif callback.data == 'tutor':
+            bot.edit_message_text('⬇️ Выберите действие', callback.message.chat.id, callback.message.id, reply_markup=tutor_menu())    
+    elif callback.data == "instructions_and_regulations":
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        buttons = [
+            types.InlineKeyboardButton('Документооборот', url='https://movavi.ru/documents'),
+            types.InlineKeyboardButton('Касса', url='https://movavi.ru/cashier'),
+            types.InlineKeyboardButton('Пожарная эвакуация', url='https://movavi.ru/fire_evacuation'),
+            types.InlineKeyboardButton('Работа с контрагентами', url='https://movavi.ru/working_with_contractors'),
+            types.InlineKeyboardButton('Первая помощь', url='https://movavi.ru/first_aid'),
+            types.InlineKeyboardButton('CPM', callback_data="CPM")
+        ]
+        keyboard.add(*buttons)
+        bot.edit_message_text('⬇️ Выберите действие', callback.message.chat.id, callback.message.id, reply_markup=keyboard)
+    elif callback.data == "CPM":
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        buttons = [
+            types.InlineKeyboardButton('Как создать договор', url='https://movavi.ru/how_create_contract'),
+            types.InlineKeyboardButton('Как провести оплату', url='https://movavi.ru/how_make_payment')
+        ]
+        keyboard.add(*buttons)
+        bot.edit_message_text('⬇️ Выберите действие', callback.message.chat.id, callback.message.id, reply_markup=keyboard)
+    elif callback.data == "course_card":
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        buttons = [
+            types.InlineKeyboardButton('Летняя школа', url='https://movavi.ru/summer_school'),
+            types.InlineKeyboardButton('Основные курсы', url='https://movavi.ru/main_course'),
+            types.InlineKeyboardButton('Краткосрочные группы', url='https://movavi.ru/shorttime_courses')
+        ]
+        keyboard.add(*buttons)
+        bot.edit_message_text('⬇️ Выберите действие', callback.message.chat.id, callback.message.id, reply_markup=keyboard)
+    elif callback.data == "motivation":
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        buttons = [
+            types.InlineKeyboardButton('Обратная связь', url='https://movavi.ru/call_back'),
+            types.InlineKeyboardButton('Мовави Буст инструкция/пароли', url='https://movavi.ru/movavi_boost')
+        ]
+        keyboard.add(*buttons)
+        bot.edit_message_text('⬇️ Выберите действие', callback.message.chat.id, callback.message.id, reply_markup=keyboard)
+    elif callback.data == "partners_tutor":
+        keyboard = types.InlineKeyboardMarkup(row_width=3)
+        buttons = [
+            types.InlineKeyboardButton('Рост', callback_data="rise_tutor"),
+            types.InlineKeyboardButton('Проскул', callback_data='proskul_tutor'),
+            types.InlineKeyboardButton('10ая гимназия', callback_data='10gymnasiums_tutor')
+        ]
+        keyboard.add(*buttons)
+        bot.edit_message_text('⬇️ Выберите действие', callback.message.chat.id, callback.message.id, reply_markup=keyboard)
+    elif callback.data == "partners_teacher":
+        keyboard = types.InlineKeyboardMarkup(row_width=3)
+        buttons = [
+            types.InlineKeyboardButton('Рост', callback_data="rise_teacher"),
+            types.InlineKeyboardButton('Проскул', callback_data='proskul_teacher'),
+            types.InlineKeyboardButton('10ая гимназия', callback_data='10gymnasiums_teacher')
+        ]
+        keyboard.add(*buttons)
+        bot.edit_message_text('⬇️ Выберите действие', callback.message.chat.id, callback.message.id, reply_markup=keyboard)
+    elif callback.data == "rise_teacher":
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        buttons = [
+            types.InlineKeyboardButton('Олимпиада', url='https://movavi.ru/olympiad'),
+            types.InlineKeyboardButton('Расписание', url='https://movavi.ru/schedule_rise'),
+            types.InlineKeyboardButton('Курсы', url='https://movavi.ru/courses_rise')
+        ]
+        keyboard.add(*buttons)
+        bot.edit_message_text('⬇️ Выберите действие', callback.message.chat.id, callback.message.id, reply_markup=keyboard)
+    elif callback.data == "rise_tutor":
+        keyboard = types.InlineKeyboardMarkup(row_width=2)
+        buttons = [
+            types.InlineKeyboardButton('Олимпиада', url='https://movavi.ru/olympiad'),
+            types.InlineKeyboardButton('Курсы', url='https://movavi.ru/courses_rise')
+        ]
+        keyboard.add(*buttons)
+        bot.edit_message_text('⬇️ Выберите действие', callback.message.chat.id, callback.message.id, reply_markup=keyboard)
+    elif callback.data == "proskul_teacher":
+        keyboard = types.InlineKeyboardMarkup(row_width=2)
+        buttons = [
+            types.InlineKeyboardButton('Курсы', url='https://movavi.ru/courses_proskul'),
+            types.InlineKeyboardButton('Расписание', url='https://movavi.ru/schedule_proskul')
+        ]
+        keyboard.add(*buttons)
+        bot.edit_message_text('⬇️ Выберите действие', callback.message.chat.id, callback.message.id, reply_markup=keyboard)
+    elif callback.data == "proskul_tutor":
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        buttons = [
+            types.InlineKeyboardButton('Курсы', url='https://movavi.ru/courses_proskul')
+        ]
+        keyboard.add(*buttons)
+        bot.edit_message_text('⬇️ Выберите действие', callback.message.chat.id, callback.message.id, reply_markup=keyboard)
+    elif callback.data == "10gymnasiums_teacher":
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        buttons = [
+            types.InlineKeyboardButton('Расписание', url='https://movavi.ru/schedule_10gymnasiums')
+        ]
+        keyboard.add(*buttons)
+        bot.edit_message_text('⬇️ Выберите действие', callback.message.chat.id, callback.message.id, reply_markup=keyboard)
+    elif callback.data == "10gymnasiums_tutor":
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        buttons = [
+            types.InlineKeyboardButton('Курсы', url='https://movavi.ru/courses_10gymnasiums')
+        ]
+        keyboard.add(*buttons)
+        bot.edit_message_text('⬇️ Выберите действие', callback.message.chat.id, callback.message.id, reply_markup=keyboard)
+    elif callback.data == "axo":
+        keyboard = types.InlineKeyboardMarkup(row_width=1)
+        buttons = [
+            types.InlineKeyboardButton('Полезные телефоны', url='https://movavi.ru/useful_phones')
+        ]
+        keyboard.add(*buttons)
+        bot.edit_message_text('⬇️ Выберите действие', callback.message.chat.id, callback.message.id, reply_markup=keyboard)
 if __name__ == "__main__":
     print("Bot is running...")
-    bot.polling(none_stop=True)
+    bot.infinity_polling()
