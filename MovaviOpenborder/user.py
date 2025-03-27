@@ -1,6 +1,7 @@
 import sqlite3
 from config import db_name
 
+@staticmethod
 def create_table():
         con = sqlite3.connect(db_name)
         cursor = con.execute('''
@@ -56,4 +57,3 @@ class User:
         """, (id,))
         result = cursor.fetchone()
         return result[0] if result else None
-        con.close()
