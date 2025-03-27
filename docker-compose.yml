@@ -1,0 +1,9 @@
+services:
+  telegram-bot:
+    build: .
+    container_name: movavi-bot
+    restart: unless-stopped
+    volumes:
+      - ./static:/app/static
+    environment:
+      - TZ=Europe/Moscow
